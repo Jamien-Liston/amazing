@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1c1240">
+  <title>Amazing</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- GATE -->
+<section id="gate" class="view">
+  <div class="gate-wrap">
+    <div class="gate-mark">Amazing<span class="spark">✦</span></div>
+    <div class="gate-sub">stories about how the world really works</div>
+    <div class="gate-form">
+      <input id="gateInput" type="password" placeholder="passphrase" autocomplete="off" autofocus>
+      <button id="gateBtn" class="btn btn-big">Enter</button>
+      <div id="gateError" class="gate-error"></div>
+    </div>
+  </div>
+</section>
+
+<!-- AGE SETUP -->
+<section id="ageView" class="view hidden">
+  <div class="age-wrap">
+    <h1 class="age-title">How old are you?</h1>
+    <div id="ageValue" class="age-value">8</div>
+    <input id="ageSlider" type="range" min="4" max="12" step="1" value="8">
+    <div class="age-scale"><span>4</span><span>12</span></div>
+    <button id="ageBtn" class="btn btn-big">That's me!</button>
+  </div>
+</section>
+
+<!-- HOME -->
+<section id="home" class="view hidden">
+  <header class="topbar">
+    <div class="brand">Amazing<span class="spark">✦</span></div>
+    <button id="ageChip" class="chip" title="Change age">age 8</button>
+  </header>
+
+  <main class="home-main">
+    <div class="today-label">Today's wonder</div>
+    <div id="todayTopic" class="today-topic">…</div>
+    <button id="todayBtn" class="btn btn-big">Tell me! ✨</button>
+
+    <div class="divider"><span>or ask your own</span></div>
+
+    <form id="askForm" class="ask-form">
+      <input id="askInput" type="text" maxlength="120" placeholder="What do you wonder about?" autocomplete="off">
+      <button type="submit" class="btn">Go</button>
+    </form>
+  </main>
+</section>
+
+<!-- STORY -->
+<section id="storyView" class="view hidden">
+  <header class="topbar">
+    <button id="backBtn" class="chip">← back</button>
+    <div class="brand small">Amazing<span class="spark">✦</span></div>
+  </header>
+
+  <main class="story-main">
+    <h1 id="storyTopic" class="story-topic"></h1>
+
+    <div id="loading" class="loading hidden">
+      <div class="loading-star">✦</div>
+      <div id="loadingMsg" class="loading-msg">Gathering stardust…</div>
+    </div>
+
+    <div id="storyError" class="story-error hidden"></div>
+    <article id="storyBody" class="story-body"></article>
+    <button id="againBtn" class="btn hidden">Another wonder →</button>
+  </main>
+</section>
+
+<script src="js/config.js"></script>
+<script src="js/topics.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
