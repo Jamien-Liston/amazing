@@ -6,40 +6,52 @@ matched to the child's age, generated live by Claude Sonnet 5. See
 
 ## Stack
 
-- **Front-end:** vanilla HTML/CSS/JS, no build step, no framework. No supabase-js —
-  the only backend call is a plain `fetch` to the Edge Function.
-- **Backend:** Supabase — one Edge Function (`get-story`) as the Anthropic proxy.
-  No database, no auth accounts.
-- **Hosting:** static front-end on Netlify over HTTPS.
+- **Front-end:** vanilla HTML/CSS/JS, no build step, no framework. The only
+  backend calls are plain `fetch`es to the Worker.
+- **Backend:** one Cloudflare Worker (`worker.js`, mirrors the Pubwedda worker
+  pattern) as the Anthropic proxy, plus a Cloudflare KV namespace (`STORIES`)
+  for story history and favourites. No database server, no auth accounts.
+- **Hosting:** static front-end on Netlify over HTTPS; Worker on
+  workers.dev via `wrangler deploy`.
 
 ## Architecture
 
-- Single `index.html` shell. Views (`gate`, `ageView`, `home`, `storyView`) are
-  sections toggled by a `hidden` class — no router.
+- Single `index.html` shell. Views (`gate`, `ageView`, `home`, `historyView`,
+  `storyView`) are sections toggled by a `hidden` class — no router.
 - `js/` plain scripts in dependency order: `config` → `topics` → `app`.
 - Age (4–12) and unlock state live in localStorage. Daily topic = hardcoded
   array indexed by day-of-year using **local** date construction (never
   `toISOString()` — UTC flips the topic mid-morning AEST).
 
-## Model call (Edge Function)
+## Worker API (all routes require `x-app-key`)
 
-- Model is `claude-sonnet-5` via the official `npm:@anthropic-ai/sdk` import.
+| Route | Does |
+|---|---|
+| `POST /story {topic, age}` | sanitise topic, age-tuned prompt → `claude-sonnet-5`, store result in KV, return `{id, story, …}` |
+| `GET /history` | stored stories, most recent first (KV key metadata only — no body reads) |
+| `GET /story?id=…` | one stored story, full text + favourite flag |
+| `POST /favourite {id, favourite}` | add/remove id in the shared favourites list |
+
+- KV layout: `story:<zero-padded-ts>-<rand>` → `{id, topic, age, text, ts}`
+  with `{topic, age, ts}` as key metadata; `favourites` → JSON array of ids.
+  Timestamp-first keys make KV's lexicographic list order chronological.
 - Sonnet 5 rules baked in: no `thinking` param (omitting it runs adaptive
   thinking by default), no sampling params (`temperature` etc. 400), no
   assistant prefill, and check `stop_reason === "refusal"` before reading
   content.
-- The SDK auto-retries 429/529/5xx twice with backoff; no custom retry loop.
+- Raw `fetch` to the Messages API (dependency-free worker, same as Pubwedda);
+  one manual retry on 429/529/5xx since there's no SDK doing it for us.
 
 ## Secrets — non-negotiable
 
-- **The Anthropic key lives only in Supabase secrets**
-  (`supabase secrets set ANTHROPIC_API_KEY=...`), read via `Deno.env.get`.
-  Never in the front-end, never committed.
-- `APP_PASSPHRASE` is also a Supabase secret; the function rejects requests
+- **The Anthropic key lives only in Worker secrets**
+  (`wrangler secret put ANTHROPIC_API_KEY`), read via `env`. Never in the
+  front-end, never committed.
+- `APP_PASSPHRASE` is also a Worker secret; every route rejects requests
   whose `x-app-key` header doesn't match (no open relay).
-- `js/config.js` (Supabase URL + anon key) is **gitignored**; commit
+- `js/config.js` (Worker URL) is **gitignored**; commit
   `js/config.example.js` instead. Netlify generates it via
-  `scripts/gen-config.sh` from env vars.
+  `scripts/gen-config.sh` from the `WORKER_URL` env var.
 
 ## Safety rules
 
@@ -47,7 +59,8 @@ matched to the child's age, generated live by Claude Sonnet 5. See
   control characters stripped) before reaching the prompt.
 - Model output is rendered as text/light-markdown only: HTML-escape everything
   first, then apply `**bold**` and paragraphs. Never `innerHTML` the raw
-  response.
+  response — including stored story text and topics coming back from KV
+  (history rows are built with `textContent`).
 
 ## Conventions
 
@@ -55,4 +68,5 @@ matched to the child's age, generated live by Claude Sonnet 5. See
 - The service worker caches the app shell cache-first. **Bump `CACHE` in
   `service-worker.js`** (`sh scripts/bump-cache.sh`) on any change to
   `index.html`, `css/`, or `js/*.js`, or installed clients keep old files.
-- Deploy the function with `supabase functions deploy get-story`.
+- Deploy the Worker with `wrangler deploy` (KV namespace id lives in
+  `wrangler.jsonc`).

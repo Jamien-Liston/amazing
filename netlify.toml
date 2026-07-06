@@ -1,5 +1,5 @@
 [build]
   # Generate js/config.js (gitignored) from environment variables before publish.
-  # Set SUPABASE_URL and SUPABASE_ANON_KEY in Netlify → Site settings → Env vars.
+  # Set WORKER_URL in Netlify → Site settings → Env vars.
   publish = "."
   command = "sh scripts/gen-config.sh"

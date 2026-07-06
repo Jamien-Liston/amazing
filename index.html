@@ -40,7 +40,10 @@
 <section id="home" class="view hidden">
   <header class="topbar">
     <div class="brand">Amazing<span class="spark">✦</span></div>
-    <button id="ageChip" class="chip" title="Change age">age 8</button>
+    <div class="topbar-actions">
+      <button id="historyChip" class="chip" title="Past stories">history</button>
+      <button id="ageChip" class="chip" title="Change age">age 8</button>
+    </div>
   </header>
 
   <main class="home-main">
@@ -57,11 +60,29 @@
   </main>
 </section>
 
+<!-- HISTORY -->
+<section id="historyView" class="view hidden">
+  <header class="topbar">
+    <button id="historyBackBtn" class="chip">← back</button>
+    <div class="brand small">Past wonders</div>
+  </header>
+
+  <main class="history-main">
+    <div id="historyLoading" class="loading hidden">
+      <div class="loading-star">✦</div>
+      <div class="loading-msg">Finding your stories…</div>
+    </div>
+    <div id="historyError" class="story-error hidden"></div>
+    <div id="historyEmpty" class="history-empty hidden">No stories yet — go wonder about something!</div>
+    <ul id="historyList" class="history-list"></ul>
+  </main>
+</section>
+
 <!-- STORY -->
 <section id="storyView" class="view hidden">
   <header class="topbar">
     <button id="backBtn" class="chip">← back</button>
-    <div class="brand small">Amazing<span class="spark">✦</span></div>
+    <button id="favBtn" class="fav-btn hidden" title="Favourite">☆</button>
   </header>
 
   <main class="story-main">

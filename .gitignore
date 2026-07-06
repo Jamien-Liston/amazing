@@ -8,6 +8,6 @@ js/config.js
 # OS noise
 .DS_Store
 
-# Supabase local dev artifacts
-supabase/.temp/
-supabase/.branches/
+# wrangler local dev secrets
+.dev.vars
+.wrangler/

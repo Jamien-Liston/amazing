@@ -1,8 +1,0 @@
-# Minimal Supabase config — Amazing uses only Edge Functions (no database,
-# no auth accounts). The get-story function keeps default JWT verification;
-# the client sends the anon key as its Bearer token, and the function itself
-# additionally checks the shared app passphrase (x-app-key header).
-project_id = "amazing"
-
-[functions.get-story]
-verify_jwt = true

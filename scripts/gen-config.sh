@@ -1,20 +1,19 @@
 #!/bin/sh
 # Generates js/config.js from environment variables at Netlify build time, so
-# the Supabase URL + anon key stay out of the repo (config.js is gitignored).
-# The anon key is public-safe — it ships to the browser.
+# the Worker URL stays out of the repo (config.js is gitignored). The URL is
+# public-safe — the Worker's passphrase check is the gate.
 set -eu
 
-if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
-  echo "ERROR: SUPABASE_URL and SUPABASE_ANON_KEY must be set in the Netlify environment." >&2
+if [ -z "${WORKER_URL:-}" ]; then
+  echo "ERROR: WORKER_URL must be set in the Netlify environment." >&2
   exit 1
 fi
 
 cat > js/config.js <<EOF
 // Generated at build time by scripts/gen-config.sh — do not edit or commit.
 window.CONFIG = {
-  SUPABASE_URL: '${SUPABASE_URL}',
-  SUPABASE_ANON_KEY: '${SUPABASE_ANON_KEY}',
+  WORKER_URL: '${WORKER_URL}',
 };
 EOF
 
-echo "Wrote js/config.js for ${SUPABASE_URL}"
+echo "Wrote js/config.js for ${WORKER_URL}"
