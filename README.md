@@ -10,7 +10,9 @@ to the child's age, generated live by Claude Sonnet 5.
    or types their own.
 2. Age is set once (slider, 4–12) and remembered.
 3. The app calls a Cloudflare Worker → Claude Sonnet 5 → story text comes
-   back and renders on screen.
+   back and renders on screen. A picture-book illustration (Gemini 3.1 Flash
+   Image) paints in above the story a moment later — generated once per
+   story, then cached.
 4. Every story is saved to Cloudflare KV: browse them in **history** (most
    recent first) and star **favourites**. No accounts — one shared household
    store.
@@ -23,6 +25,7 @@ to the child's age, generated live by Claude Sonnet 5.
 wrangler kv namespace create STORIES
 # paste the returned id into wrangler.jsonc
 wrangler secret put ANTHROPIC_API_KEY
+wrangler secret put GEMINI_API_KEY     # story illustrations
 wrangler secret put APP_PASSPHRASE     # Bunny
 wrangler deploy
 ```
@@ -63,5 +66,4 @@ against a mock instead, temporarily edit `WORKER_URL` (see
 
 ## Backlog
 
-- Image generation per story (separate build phase once the text loop is proven)
 - Read-aloud (TTS)

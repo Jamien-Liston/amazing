@@ -6,8 +6,8 @@ description: Build/launch/drive recipe for verifying the Amazing PWA end-to-end 
 # Verifying Amazing
 
 No build step. The frontend is static; all backend calls hit the Worker:
-`POST /story`, `GET /history`, `GET /story?id=…`, `POST /favourite`
-(all with an `x-app-key` header).
+`POST /story`, `GET /history`, `GET /story?id=…`, `POST /favourite`,
+`POST /image` (all with an `x-app-key` header).
 
 ## Recipe
 
@@ -15,7 +15,10 @@ No build step. The frontend is static; all backend calls hit the Worker:
    repo root as static files **and** mocks the Worker routes above on
    `127.0.0.1:8787`. `POST /story` returns `{id, story, topic, age, model}`
    and should remember stories in-process so `/history` and `/story?id=`
-   reflect them; `POST /favourite` toggles an in-memory set. Include error
+   reflect them; `POST /favourite` toggles an in-memory set; `POST /image {id}` returns
+   `{id, image: "data:image/png;base64,…", cached}` (a 1×1 PNG is fine — add
+   a ~300ms delay so the shimmer state is observable, and a magic topic that
+   makes it return `502 {error}`). Include error
    variants (`502 {error}`, and `200 {error}` for the refusal case, which the
    real Worker returns as HTTP 200).
 2. Point `js/config.js` at it: `WORKER_URL: 'http://127.0.0.1:8787'`.
@@ -39,6 +42,11 @@ No build step. The frontend is static; all backend calls hit the Worker:
 - History: `#historyChip` → list most recent first, topics via `textContent`
   (feed a `<img onerror>` topic through the mock to prove it), tapping a row
   reopens the stored story via `GET /story?id=` (no regeneration).
+- Illustration: after story text, `#storyImageWrap` shows shimmer
+  (`is-loading`) then `#storyImage` gets a `data:image/` src; reopening from
+  history loads it too; a failed `/image` hides the slot quietly (no
+  `#storyError`, story text untouched) and the slot recovers on the next
+  story.
 - Free-text ask; 1-char input must be ignored client-side.
 - Error paths: non-OK response and `200 + {error}` both show `#storyError`.
 - Service worker registers (1 registration).

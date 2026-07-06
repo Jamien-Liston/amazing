@@ -4,10 +4,17 @@
 //   GET  /history                          -> stored stories, most recent first (metadata only)
 //   GET  /story?id=…                       -> one stored story, full text
 //   POST /favourite  { id, favourite }     -> toggle a story in the favourites list
-// Secrets required: ANTHROPIC_API_KEY, APP_PASSPHRASE
+//   POST /image      { id }                -> illustration for a stored story via
+//                                             gemini-3.1-flash-image; generated once,
+//                                             cached in KV, returned as a data URL
+// Secrets required: ANTHROPIC_API_KEY, GEMINI_API_KEY, APP_PASSPHRASE
 // KV binding required: STORIES (single shared namespace — household app, no accounts)
 
 const MODEL = 'claude-sonnet-5';
+const IMAGE_MODEL = 'gemini-3.1-flash-image';
+// Gemini's Interactions API (image generation for 3.x models lives here, not
+// generateContent). env.GEMINI_API_URL overrides for local testing only.
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 const HISTORY_LIMIT = 100;
 const FAVOURITES_KEY = 'favourites';
 
@@ -43,6 +50,9 @@ export default {
       }
       if (request.method === 'POST' && url.pathname === '/favourite') {
         return await handleFavourite(await request.json(), env);
+      }
+      if (request.method === 'POST' && url.pathname === '/image') {
+        return await handleImage(await request.json(), env);
       }
       return json({ error: 'Not found' }, 404);
     } catch (err) {
@@ -158,6 +168,103 @@ function cleanTopic(raw) {
     .trim()
     .slice(0, 120);
   return cleaned.length >= 2 ? cleaned : null;
+}
+
+// ---- Story illustration ----
+
+// Generate (or fetch the cached) illustration for a stored story. Image
+// generations are the expensive call, so each story gets exactly one image,
+// cached in KV under image:<id> — reopening from history never regenerates.
+async function handleImage(body, env) {
+  const id = typeof body.id === 'string' ? body.id : '';
+  if (!id || !/^[0-9a-zA-Z-]+$/.test(id)) return json({ error: 'Bad story id' }, 400);
+
+  const cached = await env.STORIES.get(`image:${id}`, 'json');
+  if (cached && cached.data) {
+    return json({ id, image: `data:${cached.mimeType};base64,${cached.data}`, cached: true });
+  }
+
+  const raw = await env.STORIES.get(`story:${id}`);
+  if (!raw) return json({ error: 'Story not found' }, 404);
+  const { topic, age } = JSON.parse(raw);
+
+  if (!env.GEMINI_API_KEY) return json({ error: 'Server missing Gemini key' }, 500);
+
+  const response = await callGemini(env, topic, age);
+  if (response.status === 429) {
+    return json({ error: 'The picture painter is very busy — try again soon!' }, 429);
+  }
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data) {
+    console.error('Gemini API error', response.status, JSON.stringify(data).slice(0, 500));
+    return json({ error: 'No picture this time — the story is still amazing!' }, 502);
+  }
+
+  const image = findImageBlock(data);
+  if (!image || !/^image\/[\w.+-]+$/.test(image.mimeType)) {
+    console.error('Gemini response had no image', JSON.stringify(data).slice(0, 500));
+    return json({ error: 'No picture this time — the story is still amazing!' }, 502);
+  }
+
+  await env.STORIES.put(`image:${id}`, JSON.stringify({ mimeType: image.mimeType, data: image.data }));
+  return json({ id, image: `data:${image.mimeType};base64,${image.data}`, cached: false });
+}
+
+// Raw fetch to Gemini's Interactions API, same dependency-free pattern (and
+// the same one manual retry on 429/529/5xx) as the Anthropic call.
+async function callGemini(env, topic, age) {
+  const payload = {
+    model: IMAGE_MODEL,
+    input: [{ type: 'text', text: buildImagePrompt(topic, age) }],
+    response_format: {
+      type: 'image',
+      mime_type: 'image/jpeg',
+      aspect_ratio: '3:2',
+      image_size: '1K',
+    },
+  };
+
+  let response;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    response = await fetch(env.GEMINI_API_URL || GEMINI_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': env.GEMINI_API_KEY,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (response.status !== 429 && response.status !== 529 && response.status < 500) break;
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 2000));
+  }
+  return response;
+}
+
+// Same content-safety bar as the story text: friendly, simple, nothing scary.
+// Topic is already sanitised by cleanTopic before it was stored.
+function buildImagePrompt(topic, age) {
+  return `A joyful children's picture-book illustration for a ${age}-year-old, about: ${topic}.
+Bright warm colours, soft rounded shapes, friendly and curious mood, simple flat
+storybook style. No text, letters, or words anywhere in the image. Nothing scary,
+dark, violent, or photorealistic.`;
+}
+
+// Find the generated image block wherever it sits in the response. The
+// Interactions API nests it in steps -> content blocks ({type:"image", data,
+// mime_type}); scan defensively rather than hard-code the exact path.
+function findImageBlock(node) {
+  if (!node || typeof node !== 'object') return null;
+  if (typeof node.data === 'string' && node.data.length > 50) {
+    const mime = node.mime_type || node.mimeType;
+    if (node.type === 'image' || typeof mime === 'string') {
+      return { data: node.data, mimeType: typeof mime === 'string' ? mime : 'image/jpeg' };
+    }
+  }
+  for (const value of Array.isArray(node) ? node : Object.values(node)) {
+    const found = findImageBlock(value);
+    if (found) return found;
+  }
+  return null;
 }
 
 // ---- History & favourites ----

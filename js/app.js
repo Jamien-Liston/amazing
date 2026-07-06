@@ -137,6 +137,8 @@ function startStoryView(topic) {
   currentStory = null;
   el('storyTopic').textContent = topic;
   el('storyBody').innerHTML = '';
+  el('storyImageWrap').classList.add('hidden');
+  el('storyImage').removeAttribute('src');
   el('storyError').classList.add('hidden');
   el('againBtn').classList.add('hidden');
   el('favBtn').classList.add('hidden');
@@ -166,6 +168,29 @@ function setFavButton() {
   el('favBtn').classList.toggle('is-fav', Boolean(currentStory && currentStory.favourite));
 }
 
+// The illustration is a bonus: kicked off after the text renders, never
+// blocks it, and the slot quietly disappears if generation fails. The Worker
+// caches one image per story, so history reopens don't regenerate.
+async function loadStoryImage(id, topic) {
+  const wrap = el('storyImageWrap');
+  const img = el('storyImage');
+  img.alt = `Illustration for "${topic}"`;
+  wrap.classList.remove('hidden');
+  wrap.classList.add('is-loading');
+  try {
+    const data = await api('/image', { method: 'POST', body: JSON.stringify({ id }) });
+    // Bail if the user has already moved on to a different story.
+    if (!currentStory || currentStory.id !== id) return;
+    if (!/^data:image\//.test(data.image)) throw new Error('bad image');
+    img.src = data.image;
+    wrap.classList.remove('is-loading');
+  } catch {
+    if (!currentStory || currentStory.id !== id) return;
+    wrap.classList.add('hidden');
+    wrap.classList.remove('is-loading');
+  }
+}
+
 async function fetchStory(topic) {
   startStoryView(topic);
   try {
@@ -177,6 +202,7 @@ async function fetchStory(topic) {
     currentStory = { id: data.id, favourite: false };
     setFavButton();
     el('favBtn').classList.remove('hidden');
+    loadStoryImage(data.id, topic);
   } catch (err) {
     showStoryError(err);
   } finally {
@@ -194,6 +220,7 @@ async function openSavedStory(id, topic) {
     currentStory = { id: data.id, favourite: data.favourite };
     setFavButton();
     el('favBtn').classList.remove('hidden');
+    loadStoryImage(data.id, data.topic);
   } catch (err) {
     showStoryError(err);
   } finally {
