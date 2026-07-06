@@ -11,8 +11,9 @@ matched to the child's age, generated live by Claude Sonnet 5. See
 - **Backend:** one Cloudflare Worker (`worker.js`, mirrors the Pubwedda worker
   pattern) as the Anthropic proxy, plus a Cloudflare KV namespace (`STORIES`)
   for story history and favourites. No database server, no auth accounts.
-- **Hosting:** static front-end on Netlify over HTTPS; Worker on
-  workers.dev via `wrangler deploy`.
+- **Hosting:** static front-end on GitHub Pages, served straight from the
+  `main` branch root (no build step); Worker on workers.dev via
+  `wrangler deploy`.
 
 ## Architecture
 
@@ -49,9 +50,10 @@ matched to the child's age, generated live by Claude Sonnet 5. See
   front-end, never committed.
 - `APP_PASSPHRASE` is also a Worker secret; every route rejects requests
   whose `x-app-key` header doesn't match (no open relay).
-- `js/config.js` (Worker URL) is **gitignored**; commit
-  `js/config.example.js` instead. Netlify generates it via
-  `scripts/gen-config.sh` from the `WORKER_URL` env var.
+- `js/config.js` (Worker URL) is **committed** — the URL is public by nature
+  and there is no build step. Only Worker secrets are sensitive. Never put a
+  key in `config.js`.
+- `.dev.vars` (local `wrangler dev` secrets) stays gitignored.
 
 ## Safety rules
 

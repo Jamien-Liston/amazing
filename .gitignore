@@ -1,6 +1,3 @@
-# Local config — generated on Netlify by scripts/gen-config.sh
-js/config.js
-
 # Env files — never commit secrets
 .env
 .env.*

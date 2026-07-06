@@ -13,7 +13,7 @@ A kid's PWA that explains fascinating real-world concepts—how humans are made 
 - **Worker:** Cloudflare Worker (mirrors the Pubwedda worker pattern), proxies the Anthropic API using model `claude-sonnet-5`. Key lives in Worker secrets (`wrangler secret put`), never shipped to the client. Includes retry on 429/529.
 - **Storage:** Cloudflare KV, single shared namespace (household app, no accounts). Each story stored keyed by id (topic, age, text, timestamp), plus a favourited-ids list.
 - **Frontend:** PWA, HTML/CSS/JS, service worker for offline shell. Bump `CACHE` in `service-worker.js` on any change to `index.html`, `css/`, or `js/*.js`.
-- **Hosting:** Netlify, matching MaxFlix. `config.js` won't auto-deploy there—use a build script injecting from env vars, same as MaxFlix.
+- **Hosting:** GitHub Pages, served straight from `main` (no build step). `config.js` holds the public Worker URL and is committed—nothing secret ships to the client.
 - **Repo:** GitHub, private, under `Jamien-Liston`.
 - **Auth:** shared passphrase (`Bunny`) in localStorage, matching the Pubwedda/WeightTracker pattern; the Worker verifies it (`x-app-key`) against a secret on every route.
 

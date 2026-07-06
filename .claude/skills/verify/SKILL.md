@@ -18,8 +18,10 @@ No build step. The frontend is static; all backend calls hit the Worker:
    reflect them; `POST /favourite` toggles an in-memory set. Include error
    variants (`502 {error}`, and `200 {error}` for the refusal case, which the
    real Worker returns as HTTP 200).
-2. Point `js/config.js` (gitignored) at it:
-   `WORKER_URL: 'http://127.0.0.1:8787'`.
+2. Point `js/config.js` at it: `WORKER_URL: 'http://127.0.0.1:8787'`.
+   **config.js is committed** (it normally holds the real workers.dev URL) —
+   restore it with `git checkout js/config.js` when done; never commit the
+   mock URL.
 3. Drive with `puppeteer-core` + system Chrome
    (`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`,
    `headless: 'new'`, 390×844 viewport). `npm i puppeteer-core` in a temp dir.

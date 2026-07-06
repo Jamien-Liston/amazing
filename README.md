@@ -27,24 +27,35 @@ wrangler secret put APP_PASSPHRASE     # Bunny
 wrangler deploy
 ```
 
-### 2. Local front-end
+The Worker URL lives in `js/config.js` (committed — it's public by nature;
+the passphrase check and Worker secrets are the actual gates).
+
+### 2. GitHub Pages (hosting)
+
+No build step — Pages serves the repo as-is:
+
+1. Push the repo to GitHub (`Jamien-Liston/amazing`, private).
+2. Repo → Settings → Pages → Source: **Deploy from a branch**,
+   branch `main`, folder `/ (root)`.
+3. The app lands at `https://jamien-liston.github.io/amazing/` — all asset
+   paths are relative, so the subpath just works.
+
+Every push to `main` redeploys automatically.
+
+### 3. Local front-end
 
 ```sh
-cp js/config.example.js js/config.js
-# fill in WORKER_URL (https://amazing-api.YOUR-SUBDOMAIN.workers.dev)
 python3 -m http.server 8000   # then open http://localhost:8000
 ```
 
-### 3. Netlify (hosting)
-
-- New site from this repo; build settings come from `netlify.toml`.
-- Set the `WORKER_URL` env var in Site settings (the build generates
-  `js/config.js` from it).
+That's it — `js/config.js` already points at the deployed Worker. To work
+against a mock instead, temporarily edit `WORKER_URL` (see
+`.claude/skills/verify/SKILL.md`) and restore it before committing.
 
 ## Maintenance
 
 - **Any change to `index.html`, `css/`, or `js/*.js`:** run
-  `sh scripts/bump-cache.sh` before deploying, or installed PWAs keep serving
+  `sh scripts/bump-cache.sh` before pushing, or installed PWAs keep serving
   the old files.
 - **Icons:** regenerate with `python3 scripts/gen-icons.py` (needs Pillow).
 - **Daily topics:** edit the array in `js/topics.js`.

@@ -1,7 +1,7 @@
 // Caches the static app shell so the PWA opens offline. Story requests always
 // go to the network (never cached). Bump CACHE on any change to index.html,
 // css/, or js/*.js — installed clients keep the old files otherwise.
-const CACHE = 'amazing-v2';
+const CACHE = 'amazing-v3';
 const SHELL = [
   './',
   './index.html',
